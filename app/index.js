@@ -3,8 +3,8 @@ const os = require('os')
 const { WebSocketServer } = require('ws');
 const axios = require('axios');
 const port = 3774
-const watchlog_server = process.env.SERVER
-const apiKey = process.env.APIKEY
+const watchlog_server = process.env.WATCHLOG_SERVER
+const apiKey = process.env.WATCHLOG_APIKEY
 var ioServer = require('socket.io-client');
 const watchlogServerSocket = ioServer.connect(watchlog_server, { reconnect: true });
 
