@@ -1,0 +1,20 @@
+{
+  "name": "watchlog-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon watchlog-agent.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "app-module-path": "^2.2.0",
+    "axios": "^1.4.0",
+    "dotenv": "^16.3.1",
+    "socket.io-client": "^4.7.1",
+    "systeminformation": "^5.18.6",
+    "ws": "^8.13.0"
+  }
+}
