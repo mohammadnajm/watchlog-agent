@@ -79,7 +79,7 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 60000);
+        setInterval(this.collectMetrics, 10000);
     }
 
     async checkApiKey() {
