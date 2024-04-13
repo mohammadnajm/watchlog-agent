@@ -126,8 +126,8 @@ module.exports = class Application {
             }));
 
             watchlogServerSocket.emit('percentage', { metric: `system.cpu.used(${os.hostname()})`, host: os.hostname(), apiKey, count: cpuUsage, type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.used(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.used, type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.free(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.free, type: 0 })
+            watchlogServerSocket.emit('systembyte', { metric: `system.memory.used(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.used - memUsage.cached , type: 0 })
+            watchlogServerSocket.emit('systembyte', { metric: `system.memory.free(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.free + memUsage.cached, type: 0 })
             watchlogServerSocket.emit('systembyte', { metric: `system.memory.usagePercent(${os.hostname()})`, host: os.hostname(), apiKey, count: Math.round((memUsage.used / memUsage.total) * 100), type: 0 })
             watchlogServerSocket.emit('systembyte', { metric: `system.memory.cache(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.cached, type: 0 })
             diskInfo.forEach(item => {
