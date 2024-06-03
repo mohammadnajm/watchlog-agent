@@ -7,6 +7,9 @@ const watchlog_server = process.env.WATCHLOG_SERVER
 const apiKey = process.env.WATCHLOG_APIKEY
 var ioServer = require('socket.io-client');
 const watchlogServerSocket = ioServer.connect(watchlog_server, { reconnect: true });
+const express = require('express')
+const app = express()
+
 
 module.exports = class Application {
     constructor() {
@@ -17,7 +20,7 @@ module.exports = class Application {
         if (!apiKey) {
             return console.log(new Error("Watchlog Server is not found"))
         }
-        if (await this.checkApiKey()) {
+        if (!await this.checkApiKey()) {
             this.runAgent()
         } else {
             console.log("error")
@@ -26,6 +29,8 @@ module.exports = class Application {
     }
 
     runAgent() {
+        app.listen(port, () => console.log(`Watchlog agent in running`))
+        this.getRouter()
         const wss = new WebSocketServer({ port: port, host: "127.0.0.1" }, () => console.log("Watchlog agent in running"));
         wss.on('connection', function connection(ws) {
             ws.on('error', console.error);
@@ -82,6 +87,59 @@ module.exports = class Application {
         setInterval(this.collectMetrics, 10000);
     }
 
+    getRouter() {
+        app.get("/", async (req, res) => {
+            try {
+                console.log(req.query)
+                if (watchlogServerSocket.connected) {
+                    let body = req.query
+                    res.end()
+                    switch (body.method) {
+                        case 'increment':
+                            if (body.metric && body.count) {
+                                watchlogServerSocket.emit('increment', { ...body, host: os.hostname(), apiKey, type: 1 })
+                            }
+                            break;
+                        case 'decrement':
+                            if (body.metric && body.count) {
+                                watchlogServerSocket.emit('decrement', { ...body, host: os.hostname(), apiKey, type: 1 })
+                            }
+                            break;
+                        case 'distribution':
+                            if (body.metric && body.count) {
+                                watchlogServerSocket.emit('distribution', { ...body, host: os.hostname(), apiKey, type: 1 })
+                            }
+                            break;
+                        case 'gauge':
+                            if (body.metric && body.count) {
+                                watchlogServerSocket.emit('gauge', { ...body, host: os.hostname(), apiKey, type: 1 })
+                            }
+                            break;
+                        case 'percentage':
+                            if (body.metric && body.count) {
+                                watchlogServerSocket.emit('percentage', { ...body, host: os.hostname(), apiKey, type: 1 })
+                            }
+                            break;
+                        case 'systembyte':
+                            if (body.metric && body.count) {
+                                watchlogServerSocket.emit('systembyte', { ...body, host: os.hostname(), apiKey, type: 1 })
+                            }
+                            break;
+                        case 'log':
+                            if (body.service && body.message) {
+                                watchlogServerSocket.emit('log', { ...body, host: "membersgram", apiKey, type: 1 })
+                            }
+                            break;
+                        default:
+                            null
+                    }
+                }
+            } catch (error) {
+                console.log(error.message)
+            }
+        })
+    }
+
     async checkApiKey() {
         try {
             let response = await axios.get(`${watchlog_server}/checkapikey?apiKey=${apiKey}`)
@@ -126,7 +184,7 @@ module.exports = class Application {
             }));
 
             watchlogServerSocket.emit('percentage', { metric: `system.cpu.used(${os.hostname()})`, host: os.hostname(), apiKey, count: cpuUsage, type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.used(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.used - memUsage.cached , type: 0 })
+            watchlogServerSocket.emit('systembyte', { metric: `system.memory.used(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.used - memUsage.cached, type: 0 })
             watchlogServerSocket.emit('systembyte', { metric: `system.memory.free(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.free + memUsage.cached, type: 0 })
             watchlogServerSocket.emit('systembyte', { metric: `system.memory.usagePercent(${os.hostname()})`, host: os.hostname(), apiKey, count: Math.round((memUsage.used / memUsage.total) * 100), type: 0 })
             watchlogServerSocket.emit('systembyte', { metric: `system.memory.cache(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.cached, type: 0 })
