@@ -17,21 +17,21 @@ module.exports = class Application {
     }
 
     async startApp() {
-        if (!apiKey) {
-            return console.log(new Error("Watchlog Server is not found"))
-        }
-        if (!await this.checkApiKey()) {
+        // if (!apiKey) {
+        //     return console.log(new Error("Watchlog Server is not found"))
+        // }
+        // if (!await this.checkApiKey()) {
             this.runAgent()
-        } else {
-            console.log("error")
-        }
+        // } else {
+        //     console.log("error")
+        // }
         // send axios request for check api
     }
 
     runAgent() {
-        app.listen(port, () => console.log(`Watchlog agent in running`))
+        app.listen(port, () => console.log(`Watchlog api agent is running on port 3774`))
         this.getRouter()
-        const wss = new WebSocketServer({ port: port, host: "127.0.0.1" }, () => console.log("Watchlog agent in running"));
+        const wss = new WebSocketServer({ port: 3775, host: "127.0.0.1" }, () => console.log("Watchlog agent is running on port 3775"));
         wss.on('connection', function connection(ws) {
             ws.on('error', console.error);
 
@@ -90,7 +90,6 @@ module.exports = class Application {
     getRouter() {
         app.get("/", async (req, res) => {
             try {
-                console.log(req.query)
                 if (watchlogServerSocket.connected) {
                     let body = req.query
                     res.end()
