@@ -17,14 +17,14 @@ module.exports = class Application {
     }
 
     async startApp() {
-        // if (!apiKey) {
-        //     return console.log(new Error("Watchlog Server is not found"))
-        // }
-        // if (!await this.checkApiKey()) {
+        if (!apiKey) {
+            return console.log(new Error("Watchlog Server is not found"))
+        }
+        if (!await this.checkApiKey()) {
             this.runAgent()
-        // } else {
-        //     console.log("error")
-        // }
+        } else {
+            console.log("error")
+        }
         // send axios request for check api
     }
 
