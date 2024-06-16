@@ -20,7 +20,7 @@ module.exports = class Application {
         if (!apiKey) {
             return console.log(new Error("Watchlog Server is not found"))
         }
-        if (!await this.checkApiKey()) {
+        if (await this.checkApiKey()) {
             this.runAgent()
         } else {
             console.log("error")
