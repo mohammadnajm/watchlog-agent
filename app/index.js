@@ -198,3 +198,9 @@ module.exports = class Application {
     }
 
 }
+
+watchlogServerSocket.on('reconnect', (attemptNumber) => {
+    if (apiKey) {
+        watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname() })
+    }
+});
