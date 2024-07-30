@@ -40,32 +40,32 @@ module.exports = class Application {
                     let body = JSON.parse(data)
                     switch (body.method) {
                         case 'increment':
-                            if (body.metric && body.value) {
+                            if (body.metric && body.count) {
                                 watchlogServerSocket.emit('increment', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'decrement':
-                            if (body.metric && body.value) {
+                            if (body.metric && body.count) {
                                 watchlogServerSocket.emit('decrement', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'distribution':
-                            if (body.metric && body.value) {
+                            if (body.metric && body.count) {
                                 watchlogServerSocket.emit('distribution', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'gauge':
-                            if (body.metric && body.value) {
+                            if (body.metric && body.count) {
                                 watchlogServerSocket.emit('gauge', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'percentage':
-                            if (body.metric && body.value) {
+                            if (body.metric && body.count) {
                                 watchlogServerSocket.emit('percentage', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'systembyte':
-                            if (body.metric && body.value) {
+                            if (body.metric && body.count) {
                                 watchlogServerSocket.emit('systembyte', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
@@ -95,32 +95,32 @@ module.exports = class Application {
                     res.end()
                     switch (body.method) {
                         case 'increment':
-                            if (body.metric && body.count) {
+                            if (body.metric && body.value) {
                                 watchlogServerSocket.emit('increment', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'decrement':
-                            if (body.metric && body.count) {
+                            if (body.metric && body.value) {
                                 watchlogServerSocket.emit('decrement', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'distribution':
-                            if (body.metric && body.count) {
+                            if (body.metric && body.value) {
                                 watchlogServerSocket.emit('distribution', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'gauge':
-                            if (body.metric && body.count) {
+                            if (body.metric && body.value) {
                                 watchlogServerSocket.emit('gauge', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'percentage':
-                            if (body.metric && body.count) {
+                            if (body.metric && body.value) {
                                 watchlogServerSocket.emit('percentage', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
                         case 'systembyte':
-                            if (body.metric && body.count) {
+                            if (body.metric && body.value) {
                                 watchlogServerSocket.emit('systembyte', { ...body, host: os.hostname(), apiKey, type: 1 })
                             }
                             break;
