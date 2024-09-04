@@ -16,21 +16,25 @@ module.exports = class Application {
         this.startApp()
     }
 
+
     async startApp() {
+        const systemInfo = await si.system();
+        const systemOsfo = await si.osInfo();
+
         if (!apiKey) {
             return console.log(new Error("Watchlog Server is not found"))
         }
-        if (await this.checkApiKey()) {
-            this.runAgent()
+        if (await this.checkApiKey(systemInfo.uuid, systemOsfo.distro, systemOsfo.release)) {
+            this.runAgent(systemInfo.uuid)
         } else {
             console.log("error")
         }
         // send axios request for check api
     }
 
-    runAgent() {
+    runAgent(uuid) {
         app.listen(port, () => console.log(`Watchlog api agent is running on port 3774`))
-        this.getRouter()
+        this.getRouter(uuid)
         const wss = new WebSocketServer({ port: 3775, host: "127.0.0.1" }, () => console.log("Watchlog agent is running on port 3775"));
         wss.on('connection', function connection(ws) {
             ws.on('error', console.error);
@@ -41,37 +45,37 @@ module.exports = class Application {
                     switch (body.method) {
                         case 'increment':
                             if (body.metric && body.count) {
-                                watchlogServerSocket.emit('increment', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('increment', { ...body, apiKey, type: 1 })
                             }
                             break;
                         case 'decrement':
                             if (body.metric && body.count) {
-                                watchlogServerSocket.emit('decrement', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('decrement', { ...body, apiKey, type: 1 })
                             }
                             break;
                         case 'distribution':
                             if (body.metric && body.count) {
-                                watchlogServerSocket.emit('distribution', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('distribution', { ...body, apiKey, type: 1 })
                             }
                             break;
                         case 'gauge':
                             if (body.metric && body.count) {
-                                watchlogServerSocket.emit('gauge', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('gauge', { ...body, apiKey, type: 1 })
                             }
                             break;
                         case 'percentage':
                             if (body.metric && body.count) {
-                                watchlogServerSocket.emit('percentage', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('percentage', { ...body, apiKey, type: 1 })
                             }
                             break;
                         case 'systembyte':
                             if (body.metric && body.count) {
-                                watchlogServerSocket.emit('systembyte', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('systembyte', { ...body, apiKey, type: 1 })
                             }
                             break;
                         case 'log':
                             if (body.service && body.message) {
-                                watchlogServerSocket.emit('log', { ...body, host: "membersgram", apiKey, type: 1 })
+                                watchlogServerSocket.emit('log', { ...body, type: 1 })
                             }
                             break;
                         default:
@@ -84,10 +88,10 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 10000);
+        setInterval(this.collectMetrics, 60000);
     }
 
-    getRouter() {
+    getRouter(uuid) {
         app.get("/", async (req, res) => {
             try {
                 if (watchlogServerSocket.connected) {
@@ -96,37 +100,37 @@ module.exports = class Application {
                     switch (body.method) {
                         case 'increment':
                             if (body.metric && body.value) {
-                                watchlogServerSocket.emit('increment', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('increment', { ...body, type: 1 })
                             }
                             break;
                         case 'decrement':
                             if (body.metric && body.value) {
-                                watchlogServerSocket.emit('decrement', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('decrement', { ...body, type: 1 })
                             }
                             break;
                         case 'distribution':
                             if (body.metric && body.value) {
-                                watchlogServerSocket.emit('distribution', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('distribution', { ...body, type: 1 })
                             }
                             break;
                         case 'gauge':
                             if (body.metric && body.value) {
-                                watchlogServerSocket.emit('gauge', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('gauge', { ...body, type: 1 })
                             }
                             break;
                         case 'percentage':
                             if (body.metric && body.value) {
-                                watchlogServerSocket.emit('percentage', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('percentage', { ...body, type: 1 })
                             }
                             break;
                         case 'systembyte':
                             if (body.metric && body.value) {
-                                watchlogServerSocket.emit('systembyte', { ...body, host: os.hostname(), apiKey, type: 1 })
+                                watchlogServerSocket.emit('systembyte', { ...body, type: 1, uuid: uuid })
                             }
                             break;
                         case 'log':
                             if (body.service && body.message) {
-                                watchlogServerSocket.emit('log', { ...body, host: "membersgram", apiKey, type: 1 })
+                                watchlogServerSocket.emit('log', { ...body, host: "membersgram", apiKey, type: 1, uuid: uuid })
                             }
                             break;
                         default:
@@ -139,12 +143,13 @@ module.exports = class Application {
         })
     }
 
-    async checkApiKey() {
+    async checkApiKey(uuid, distro, release) {
         try {
             let response = await axios.get(`${watchlog_server}/checkapikey?apiKey=${apiKey}`)
             if (response.status == 200) {
                 if (response.data.status == "success") {
-                    watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname() })
+
+                    watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), uuid: uuid, distro: distro, release: release })
                     return true
                 } else {
                     return false
@@ -162,35 +167,160 @@ module.exports = class Application {
     // to collect and log metrics
     async collectMetrics() {
         try {
-            const cpuData = await si.currentLoad();
-            const cpuUsage = cpuData.currentLoad.toFixed(2);
+            watchlogServerSocket.emit('serverMetrics', {
+                metric: 'uptime',
+                count: os.uptime(),
+                tag: "uptime"
+            });
 
-            const memData = await si.mem();
-            const memUsage = {
-                total: memData.total,
-                free: memData.free + memData.cached,
-                used: memData.used - memData.cached,
-                cached: memData.cached
 
-            };
 
-            const disks = await si.fsSize();
-            const diskInfo = disks.map(disk => ({
-                filesystem: disk.fs,
-                size: disk.size,
-                used: disk.used,
-                available: disk.available
-            }));
+            // cpu metrics
+            si.currentLoad().then(cpuData => {
+                const cpuUsage = cpuData.currentLoad.toFixed(2);
+                watchlogServerSocket.emit("serverMetricsArray", {
+                    data: [
+                        {
+                            metric: `system.cpu.used`, count: cpuUsage, tag: 'cpu'
+                        }
+                    ]
+                })
+            });
 
-            watchlogServerSocket.emit('percentage', { metric: `system.cpu.used(${os.hostname()})`, host: os.hostname(), apiKey, count: cpuUsage, type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.used(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.used - memUsage.cached, type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.free(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.free + memUsage.cached, type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.usagePercent(${os.hostname()})`, host: os.hostname(), apiKey, count: Math.round((memUsage.used / memUsage.total) * 100), type: 0 })
-            watchlogServerSocket.emit('systembyte', { metric: `system.memory.cache(${os.hostname()})`, host: os.hostname(), apiKey, count: memUsage.cached, type: 0 })
-            diskInfo.forEach(item => {
-                watchlogServerSocket.emit('systembyte', { metric: `system.disk.${item.filesystem}.used(${os.hostname()})`, host: os.hostname(), apiKey, count: item.used, type: 0 })
-                watchlogServerSocket.emit('systembyte', { metric: `system.disk.${item.filesystem}.free(${os.hostname()})`, host: os.hostname(), apiKey, count: item.available, type: 0 })
+
+            // memory metrics
+            si.mem().then(memData => {
+                const memUsage = {
+                    total: memData.total,
+                    free: memData.free + memData.cached,
+                    used: memData.used - memData.cached,
+                    cached: memData.cached
+
+                };
+                let serverMetrics = [
+                    {
+                        metric: `system.memory.used`, count: memUsage.used - memUsage.cached, tag: 'memory'
+                    },
+                    {
+                        metric: `system.memory.free`, count: memUsage.free + memUsage.cached, tag: "memory"
+                    },
+                    {
+                        metric: `system.memory.usagePercent`, count: Math.round((memUsage.used / memUsage.total) * 100), tag: "memory"
+                    },
+                    {
+                        metric: `system.memory.cache`, count: memUsage.cached, tag: "memory"
+                    }
+                ]
+                watchlogServerSocket.emit("serverMetricsArray", {
+                    data: serverMetrics
+                })
+
+
+            });
+
+
+            // disk metrics
+            si.fsSize().then(disks => {
+                const diskInfo = disks.map(disk => ({
+                    filesystem: disk.fs,
+                    size: disk.size,
+                    used: disk.used,
+                    available: disk.available
+                }));
+                let discks = []
+                diskInfo.forEach(item => {
+                    discks.push({ metric: `system.disk.${item.filesystem}.used`, count: item.used, tag: "disk" })
+                    discks.push({ metric: `system.disk.${item.filesystem}.free`, count: item.available, tag: "disk" })
+                })
+
+                watchlogServerSocket.emit("serverMetricsArray", {
+                    data: discks
+                })
+
+            });
+
+
+            // proccess metrics
+            si.processes().then(processes => {
+                const topCpuProcesses = processes.list
+                    .sort((a, b) => b.cpu - a.cpu)
+                    .slice(0, 10)
+
+                const topMemProcesses = processes.list
+                    .sort((a, b) => b.mem - a.mem)
+                    .slice(0, 5);
+
+                let proccessMetrics = []
+
+                topCpuProcesses.forEach((process, index) => {
+                    proccessMetrics.push({
+                        metric: process.name, count: process.cpu, name: process.name, pid: process.pid, tag: "cpuproccess"
+                    })
+                });
+
+                topMemProcesses.forEach((process, index) => {
+                    proccessMetrics.push({
+                        metric: process.name, count: process.mem, name: process.name, pid: process.pid, tag: "memoryproccess"
+                    })
+                });
+
+
+                watchlogServerSocket.emit("serverMetricsArray", {
+                    data: proccessMetrics
+                })
+
+            });
+
+
+
+
+            // network metrics - Bandwidth Usage 
+            si.networkStats().then(networkStats => {
+                let networks = []
+
+                networkStats.forEach(network => {
+                    networks.push({
+                        metric: `network.${network.iface}.rx`,
+                        count: network.rx_bytes,
+                        tag: "networks"
+                    })
+                    networks.push({
+                        metric: `network.${network.iface}.tx`,
+                        count: network.tx_bytes,
+                        tag: "networks"
+                    })
+                });
+
+                watchlogServerSocket.emit("serverMetricsArray", {
+                    data: networks
+                })
+
             })
+
+
+            // Active Connections
+            si.networkConnections().then(networkConnections => {
+                const activeConnections = networkConnections.filter(conn => conn.state === 'ESTABLISHED').length;
+                watchlogServerSocket.emit('serverMetrics', {
+                    metric: 'network.activeConnections',
+                    count: activeConnections,
+                    tag: "activeconnection"
+                });
+            });
+
+
+            // Latency
+            si.inetLatency().then(ping => {
+                watchlogServerSocket.emit('serverMetrics', {
+                    metric: 'network.latency',
+                    count: ping,
+                    tag: "latency"
+                });
+            });
+
+            
+
+
         } catch (error) {
 
         }
@@ -199,8 +329,11 @@ module.exports = class Application {
 
 }
 
-watchlogServerSocket.on('reconnect', (attemptNumber) => {
+watchlogServerSocket.on('reconnect', async (attemptNumber) => {
     if (apiKey) {
-        watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname() })
+        const systemInfo = await si.system();
+        const systemOsfo = await si.osInfo();
+        watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), uuid: systemInfo.uuid, distro: systemOsfo.distro, release: systemOsfo.release })
     }
+
 });
