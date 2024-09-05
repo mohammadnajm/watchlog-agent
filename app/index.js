@@ -9,6 +9,7 @@ var ioServer = require('socket.io-client');
 const watchlogServerSocket = ioServer.connect(watchlog_server, { reconnect: true });
 const express = require('express')
 const app = express()
+const exec = require('child_process').exec;
 
 
 module.exports = class Application {
@@ -168,6 +169,15 @@ module.exports = class Application {
     // to collect and log metrics
     async collectMetrics() {
         try {
+            exec('docker --version', (error, stdout) => {
+                if (error) {
+                    console.log('Docker is not installed.');
+                } else {
+
+                }
+            });
+
+
             si.dockerImages().then(images => {
                 let imagesMetrics = []
                 images.forEach(image => {
@@ -175,77 +185,77 @@ module.exports = class Application {
                         id: image.id,
                         name: image.repoTags.length > 0 ? image.repoTags[0].split(':')[0] : "null",
                         tag: image.repoTags.length > 0 ? image.repoTags[0].split(':')[1] : "null",
-                        volumes: image.config.Volumes ? image.config.Volumes.toString() : "",
+                        volumes: image.config.Volumes ? image.config.Volumes.toString() : [],
                         size: image.size,
                         created: image.created
                     })
                 })
+                si.dockerInfo().then(info => {
+                    if (info) {
+                        si.dockerVolumes().then(volumes => {
+                            let volumeMetrics = []
+                            volumes.forEach(volume => {
+                                volumeMetrics.push({
+                                    id: volume.name,
+                                    name: volume.name,
+                                    labels: volume.labels ? volume.labels.toString() : "",
+                                    mountpoint: volume.mountpoint,
+                                    scope: volume.scope,
+                                    created: volume.created
+                                })
+                            })
+                            si.dockerAll().then(containers => {
+                                let containerMetrics = []
+                                containers.forEach(container => {
+                                    try {
+                                        containerMetrics.push({
+                                            id: container.id,
+                                            name: container.name,
+                                            image: container.image,
+                                            created: container.created,
+                                            started: container.started,
+                                            state: container.state,
+                                            restartCount: container.restartCount,
+                                            ports: container.ports.length > 0 ? container.ports : [],
+                                            memUsage: container.memUsage,
+                                            memLimit: container.memLimit,
+                                            memPercent: container.memPercent,
+                                            cpuPercent: container.cpuPercent,
+                                            netIO_rx: container.netIO.rx,
+                                            netIO_wx: container.netIO.wx,
+                                            blockIO_r: container.blockIO.r,
+                                            blockIO_w: container.blockIO.w
+                                        })
+                                    } catch (error) {
 
-                watchlogServerSocket.emit("dockerImages", {
-                    data: imagesMetrics
-                })
-
-            }).catch(err => null)
-
-
-            si.dockerVolumes().then(volumes => {
-                let volumeMetrics = []
-                volumes.forEach(volume => {
-                    volumeMetrics.push({
-                        id: volume.name,
-                        name: volume.name,
-                        labels: volume.labels ? volume.labels.toString() : "",
-                        mountpoint: volume.mountpoint,
-                        scope: volume.scope,
-                        created: volume.created
-                    })
-                })
-                watchlogServerSocket.emit("dockerVolumes", {
-                    data: volumeMetrics
-                })
-
-            }).catch(err => null)
+                                    }
+                                })
+                                watchlogServerSocket.emit("dockerInfo", {
+                                    data: {
+                                        id: info.id,
+                                        name: "dockerInfo",
+                                        containersCount: info.containers,
+                                        containersRunning: info.containersRunning,
+                                        containersPaused: info.containersPaused,
+                                        containersStopped: info.containersStopped,
+                                        imagesCount: info.images,
+                                        memTotal: info.memTotal,
+                                        serverVersion: info.serverVersion,
+                                        volumesCount: volumes.length,
+                                        volumes: volumeMetrics,
+                                        images: imagesMetrics,
+                                        containers: containerMetrics
+                                    }
+                                })
 
 
-            si.dockerAll().then(containers => {
-                let containerMetrics = []
-                containers.forEach(container => {
-                    try {
-                        containerMetrics.push({
-                            id: container.id,
-                            name: container.name,
-                            image: container.image,
-                            created: container.created,
-                            started: container.started,
-                            state: container.state,
-                            restartCount: container.restartCount,
-                            ports: container.ports.length > 0 ? container.ports.toString() : "",
-                            memUsage: container.memUsage,
-                            memLimit: container.memLimit,
-                            memPercent: container.memPercent,
-                            cpuPercent: container.cpuPercent,
-                            netIO_rx: container.netIO.rx,
-                            netIO_wx: container.netIO.wx,
-                            blockIO_r: container.blockIO.r,
-                            blockIO_w: container.blockIO.w
-                        })
-                    } catch (error) {
 
+                            }).catch(err => null)
+
+                        }).catch(err => null)
                     }
-                })
-
-
-                 watchlogServerSocket.emit("dockerContainers", {
-                    data: containerMetrics
-                })
-               
-
-            }).catch(err => null)
-
-
-
-            // disk metrics
-            return
+                }).catch(err => null)
+            }).catch(err => console.log(err))
 
             si.fsSize().then(disks => {
                 let used = 0
