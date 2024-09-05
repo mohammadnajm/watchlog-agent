@@ -88,7 +88,8 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 60000);
+        // setInterval(this.collectMetrics, 10000);
+        this.collectMetrics()
     }
 
     getRouter(uuid) {
@@ -167,6 +168,123 @@ module.exports = class Application {
     // to collect and log metrics
     async collectMetrics() {
         try {
+            si.dockerImages().then(images => {
+                let imagesMetrics = []
+                images.forEach(image => {
+                    imagesMetrics.push({
+                        id: image.id,
+                        name: image.repoTags.length > 0 ? image.repoTags[0].split(':')[0] : "null",
+                        tag: image.repoTags.length > 0 ? image.repoTags[0].split(':')[1] : "null",
+                        volumes: image.config.Volumes ? image.config.Volumes.toString() : "",
+                        size: image.size,
+                        created: image.created
+                    })
+                })
+
+                watchlogServerSocket.emit("dockerImages", {
+                    data: imagesMetrics
+                })
+
+            }).catch(err => null)
+
+
+            si.dockerVolumes().then(volumes => {
+                let volumeMetrics = []
+                volumes.forEach(volume => {
+                    volumeMetrics.push({
+                        id: volume.name,
+                        name: volume.name,
+                        labels: volume.labels ? volume.labels.toString() : "",
+                        mountpoint: volume.mountpoint,
+                        scope: volume.scope,
+                        created: volume.created
+                    })
+                })
+                watchlogServerSocket.emit("dockerVolumes", {
+                    data: volumeMetrics
+                })
+
+            }).catch(err => null)
+
+
+            si.dockerAll().then(containers => {
+                let containerMetrics = []
+                containers.forEach(container => {
+                    try {
+                        containerMetrics.push({
+                            id: container.id,
+                            name: container.name,
+                            image: container.image,
+                            created: container.created,
+                            started: container.started,
+                            state: container.state,
+                            restartCount: container.restartCount,
+                            ports: container.ports.length > 0 ? container.ports.toString() : "",
+                            memUsage: container.memUsage,
+                            memLimit: container.memLimit,
+                            memPercent: container.memPercent,
+                            cpuPercent: container.cpuPercent,
+                            netIO_rx: container.netIO.rx,
+                            netIO_wx: container.netIO.wx,
+                            blockIO_r: container.blockIO.r,
+                            blockIO_w: container.blockIO.w
+                        })
+                    } catch (error) {
+
+                    }
+                })
+
+
+                 watchlogServerSocket.emit("dockerContainers", {
+                    data: containerMetrics
+                })
+               
+
+            }).catch(err => null)
+
+
+
+            // disk metrics
+            return
+
+            si.fsSize().then(disks => {
+                let used = 0
+                let total = 0
+                let disksMetrics = []
+
+                disks.forEach(item => {
+                    if (!isNaN(Number(item.used))) {
+                        disksMetrics.push({ metric: `system.disk.${item.fs}.used`, count: item.used, tag: "disk" })
+                        disksMetrics.push({ metric: `system.disk.${item.fs}.size`, count: item.size, tag: "disk" })
+                        used += item.used
+                        if (total < item.size) {
+                            total = item.size
+                        }
+                    }
+                })
+
+                used += 23243434
+                disksMetrics.push({
+                    metric: `system.disk.total`, count: total, tag: "disk"
+                })
+                disksMetrics.push({
+                    metric: `system.disk.use`, count: used, tag: "disk"
+                })
+                disksMetrics.push({
+                    metric: `system.disk.usagePercent`, count: Math.round((used / total) * 100), tag: "disk"
+                })
+
+
+
+
+                watchlogServerSocket.emit("serverMetricsArray", {
+                    data: disksMetrics
+                })
+
+            });
+
+
+
             watchlogServerSocket.emit('serverMetrics', {
                 metric: 'uptime',
                 count: os.uptime(),
@@ -219,25 +337,7 @@ module.exports = class Application {
             });
 
 
-            // disk metrics
-            si.fsSize().then(disks => {
-                const diskInfo = disks.map(disk => ({
-                    filesystem: disk.fs,
-                    size: disk.size,
-                    used: disk.used,
-                    available: disk.available
-                }));
-                let discks = []
-                diskInfo.forEach(item => {
-                    discks.push({ metric: `system.disk.${item.filesystem}.used`, count: item.used, tag: "disk" })
-                    discks.push({ metric: `system.disk.${item.filesystem}.free`, count: item.available, tag: "disk" })
-                })
 
-                watchlogServerSocket.emit("serverMetricsArray", {
-                    data: discks
-                })
-
-            });
 
 
             // proccess metrics
@@ -291,6 +391,7 @@ module.exports = class Application {
                     })
                 });
 
+
                 watchlogServerSocket.emit("serverMetricsArray", {
                     data: networks
                 })
@@ -318,7 +419,7 @@ module.exports = class Application {
                 });
             });
 
-            
+
 
 
         } catch (error) {
