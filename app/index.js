@@ -89,8 +89,7 @@ module.exports = class Application {
             });
 
         });
-        // setInterval(this.collectMetrics, 10000);
-        this.collectMetrics()
+        // setInterval(this.collectMetrics, 60000);
     }
 
     getRouter(uuid) {
