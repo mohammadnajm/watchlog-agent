@@ -89,7 +89,8 @@ module.exports = class Application {
             });
 
         });
-        // setInterval(this.collectMetrics, 60000);
+        setInterval(this.collectMetrics, 60000);
+        // this.collectMetrics()
     }
 
     getRouter(uuid) {
@@ -180,14 +181,38 @@ module.exports = class Application {
             si.dockerImages().then(images => {
                 let imagesMetrics = []
                 images.forEach(image => {
-                    imagesMetrics.push({
-                        id: image.id,
-                        name: image.repoTags.length > 0 ? image.repoTags[0].split(':')[0] : "null",
-                        tag: image.repoTags.length > 0 ? image.repoTags[0].split(':')[1] : "null",
-                        volumes: image.config.Volumes ? image.config.Volumes.toString() : [],
-                        size: image.size,
-                        created: image.created
-                    })
+
+                    if (image.repoTags.length > 0) {
+                        const lastColonIndex = image.repoTags[0].lastIndexOf(':');
+
+
+
+                        const name = image.repoTags[0].slice(0, lastColonIndex); // Get part before the last ':'
+                        const tag = image.repoTags[0].slice(lastColonIndex + 1); // Get part after the last ':'
+                        imagesMetrics.push({
+                            id: image.id,
+                            name: name,
+                            tag: tag,
+                            volumes: image.config.Volumes ? image.config.Volumes : [],
+                            size: image.size,
+                            created: image.created
+                        })
+                    } else {
+                        imagesMetrics.push({
+                            id: image.id,
+                            name: "null",
+                            tag: "null",
+                            volumes: image.config.Volumes ? image.config.Volumes.toString() : [],
+                            size: image.size,
+                            created: image.created
+                        })
+                    }
+
+
+
+
+
+
                 })
                 si.dockerInfo().then(info => {
                     if (info) {
@@ -216,6 +241,7 @@ module.exports = class Application {
                                             state: container.state,
                                             restartCount: container.restartCount,
                                             ports: container.ports.length > 0 ? container.ports : [],
+                                            mounts : container.mounts.length > 0 ? container.mounts : [],
                                             memUsage: container.memUsage,
                                             memLimit: container.memLimit,
                                             memPercent: container.memPercent,
