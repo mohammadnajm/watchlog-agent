@@ -89,7 +89,7 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 60000);
+        setInterval(this.collectMetrics, 10000);
         // this.collectMetrics()
     }
 
@@ -345,14 +345,15 @@ module.exports = class Application {
             si.mem().then(memData => {
                 const memUsage = {
                     total: memData.total,
-                    free: memData.free + memData.cached,
-                    used: memData.used - memData.cached,
-                    cached: memData.cached
+                    free: memData.free + memData.cached + memData.buffcache,
+                    used: memData.used - memData.cached - memData.buffcache,
+                    cached: memData.cached,
+                    buffcache: memData.buffcache
 
                 };
                 let serverMetrics = [
                     {
-                        metric: `system.memory.used`, count: memUsage.used - memUsage.cached, tag: 'memory'
+                        metric: `system.memory.used`, count: memUsage.used, tag: 'memory'
                     },
                     {
                         metric: `system.memory.free`, count: memUsage.free + memUsage.cached, tag: "memory"
@@ -362,6 +363,9 @@ module.exports = class Application {
                     },
                     {
                         metric: `system.memory.cache`, count: memUsage.cached, tag: "memory"
+                    },
+                    {
+                        metric: `system.memory.buffcache`, count: memUsage.buffcache, tag: "memory"
                     }
                 ]
                 watchlogServerSocket.emit("serverMetricsArray", {
@@ -370,43 +374,6 @@ module.exports = class Application {
 
 
             });
-
-
-
-
-
-            // proccess metrics
-            si.processes().then(processes => {
-                const topCpuProcesses = processes.list
-                    .sort((a, b) => b.cpu - a.cpu)
-                    .slice(0, 10)
-
-                const topMemProcesses = processes.list
-                    .sort((a, b) => b.mem - a.mem)
-                    .slice(0, 5);
-
-                let proccessMetrics = []
-
-                topCpuProcesses.forEach((process, index) => {
-                    proccessMetrics.push({
-                        metric: process.name, count: process.cpu, name: process.name, pid: process.pid, tag: "cpuproccess"
-                    })
-                });
-
-                topMemProcesses.forEach((process, index) => {
-                    proccessMetrics.push({
-                        metric: process.name, count: process.mem, name: process.name, pid: process.pid, tag: "memoryproccess"
-                    })
-                });
-
-
-                watchlogServerSocket.emit("serverMetricsArray", {
-                    data: proccessMetrics
-                })
-
-            });
-
-
 
 
             // network metrics - Bandwidth Usage 
