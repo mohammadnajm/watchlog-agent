@@ -1,5 +1,6 @@
 const si = require('systeminformation');
 const os = require('os')
+const fs = require('fs')
 const { WebSocketServer } = require('ws');
 const axios = require('axios');
 const port = 3774
@@ -10,8 +11,8 @@ const watchlogServerSocket = ioServer.connect(watchlog_server, { reconnect: true
 const express = require('express')
 const app = express()
 const exec = require('child_process').exec;
-
-
+const path = require('path')
+const configFilePath = path.join(__dirname, './../.env');
 module.exports = class Application {
     constructor() {
         this.startApp()
@@ -19,16 +20,37 @@ module.exports = class Application {
 
 
     async startApp() {
+
         const systemInfo = await si.system();
         const systemOsfo = await si.osInfo();
+        let uuid = ""
+        if (!process.env.UUID) {
+            if (systemOsfo.serial && systemOsfo.serial.length > 0) {
+                uuid = systemOsfo.serial
+            } else if (systemInfo.uuid && systemInfo.uuid.length > 0) {
+                uuid = systemInfo.uuid
+            } else {
+                uuid = systemOsfo.hostname
+            }
+            fs.appendFileSync(configFilePath, `\nUUID=${uuid}`, 'utf8');
+
+
+        } else {
+            uuid = process.env.UUID
+        }
+
+
 
         if (!apiKey) {
             return console.log(new Error("Watchlog Server is not found"))
         }
-        if (await this.checkApiKey(systemInfo.uuid, systemOsfo.distro, systemOsfo.release)) {
-            this.runAgent(systemInfo.uuid)
+        if (await this.checkApiKey(uuid, systemOsfo.distro, systemOsfo.release)) {
+            this.runAgent(uuid)
         } else {
-            console.log("error")
+            console.log("Something went wrong.")
+            setTimeout(() => {
+                this.runAgent()
+            }, 10000)
         }
         // send axios request for check api
     }
@@ -151,7 +173,7 @@ module.exports = class Application {
             if (response.status == 200) {
                 if (response.data.status == "success") {
 
-                    watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), uuid: uuid, distro: distro, release: release })
+                    watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), ip: getSystemIP(), uuid: uuid, distro: distro, release: release })
                     return true
                 } else {
                     return false
@@ -241,7 +263,7 @@ module.exports = class Application {
                                             state: container.state,
                                             restartCount: container.restartCount,
                                             ports: container.ports.length > 0 ? container.ports : [],
-                                            mounts : container.mounts.length > 0 ? container.mounts : [],
+                                            mounts: container.mounts.length > 0 ? container.mounts : [],
                                             memUsage: container.memUsage,
                                             memLimit: container.memLimit,
                                             memPercent: container.memPercent,
@@ -434,9 +456,44 @@ module.exports = class Application {
 
 watchlogServerSocket.on('reconnect', async (attemptNumber) => {
     if (apiKey) {
-        const systemInfo = await si.system();
         const systemOsfo = await si.osInfo();
-        watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), uuid: systemInfo.uuid, distro: systemOsfo.distro, release: systemOsfo.release })
+        const systemInfo = await si.system();
+            
+        let uuid = ""
+        if (!process.env.UUID) {
+            if (systemOsfo.serial && systemOsfo.serial.length > 0) {
+                uuid = systemOsfo.serial
+            } else if (systemInfo.uuid && systemInfo.uuid.length > 0) {
+                uuid = systemInfo.uuid
+            } else {
+                uuid = systemOsfo.hostname
+            }
+            fs.appendFileSync(configFilePath, `\nUUID=${uuid}`, 'utf8');
+
+
+        } else {
+            uuid = process.env.UUID
+        }
+        
+        watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), ip: getSystemIP(), uuid: uuid, distro: systemOsfo.distro, release: systemOsfo.release })
     }
 
 });
+
+
+
+function getSystemIP() {
+    const networkInterfaces = os.networkInterfaces();
+    for (let interfaceName in networkInterfaces) {
+        const interfaces = networkInterfaces[interfaceName];
+
+        for (let iface of interfaces) {
+            // Check if it's an IPv4 address and not internal (i.e., not a localhost address)
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+
+    return null; // No valid external IP found
+}
