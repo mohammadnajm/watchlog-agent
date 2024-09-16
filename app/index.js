@@ -280,23 +280,26 @@ module.exports = class Application {
 
                                     }
                                 })
-                                watchlogServerSocket.emit("dockerInfo", {
-                                    data: {
-                                        id: info.id,
-                                        name: "dockerInfo",
-                                        containersCount: info.containers,
-                                        containersRunning: info.containersRunning,
-                                        containersPaused: info.containersPaused,
-                                        containersStopped: info.containersStopped,
-                                        imagesCount: info.images,
-                                        memTotal: info.memTotal,
-                                        serverVersion: info.serverVersion,
-                                        volumesCount: volumes.length,
-                                        volumes: volumeMetrics,
-                                        images: imagesMetrics,
-                                        containers: containerMetrics
-                                    }
-                                })
+                                if(info.id){
+                                    watchlogServerSocket.emit("dockerInfo", {
+                                        data: {
+                                            id: info.id,
+                                            name: "dockerInfo",
+                                            containersCount: info.containers,
+                                            containersRunning: info.containersRunning,
+                                            containersPaused: info.containersPaused,
+                                            containersStopped: info.containersStopped,
+                                            imagesCount: info.images,
+                                            memTotal: info.memTotal,
+                                            serverVersion: info.serverVersion,
+                                            volumesCount: volumes.length,
+                                            volumes: volumeMetrics,
+                                            images: imagesMetrics,
+                                            containers: containerMetrics
+                                        }
+                                    })
+                                }
+                               
 
 
 
