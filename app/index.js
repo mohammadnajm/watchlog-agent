@@ -176,6 +176,9 @@ module.exports = class Application {
                     watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), ip: getSystemIP(), uuid: uuid, distro: distro, release: release })
                     return true
                 } else {
+                    if(response.data.message){
+                        console.log(response.data.message)
+                    }
                     return false
                 }
             } else {
