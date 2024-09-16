@@ -370,8 +370,8 @@ module.exports = class Application {
             si.mem().then(memData => {
                 const memUsage = {
                     total: memData.total,
-                    free: memData.free + memData.cached + memData.buffcache,
-                    used: memData.used - memData.cached - memData.buffcache,
+                    free: memData.free + memData.cached,
+                    used: memData.used - memData.cached,
                     cached: memData.cached,
                     buffcache: memData.buffcache
 
