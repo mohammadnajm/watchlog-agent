@@ -495,11 +495,28 @@ function getSystemIP() {
 
         for (let iface of interfaces) {
             // Check if it's an IPv4 address and not internal (i.e., not a localhost address)
-            if (iface.family === 'IPv4' && !iface.internal) {
+            if (iface.family === 'IPv4' && !iface.internal && !isPrivateIP(iface.address)) {
                 return iface.address;
             }
         }
     }
 
     return null; // No valid external IP found
+}
+
+
+
+// Function to check if an IP is private
+function isPrivateIP(ip) {
+    // Convert IP to an integer for easier comparison
+    const parts = ip.split('.').map(Number);
+    const ipNum = (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+
+    // Check against private IP ranges
+    return (
+        (ipNum >= (10 << 24) && ipNum <= ((10 << 24) + 0xFFFFFF)) ||            // 10.0.0.0 - 10.255.255.255
+        (ipNum >= (172 << 24 | 16 << 16) && ipNum <= (172 << 24 | 31 << 16 | 0xFFFF)) || // 172.16.0.0 - 172.31.255.255
+        (ipNum >= (192 << 24 | 168 << 16) && ipNum <= (192 << 24 | 168 << 16 | 0xFFFF)) || // 192.168.0.0 - 192.168.255.255
+        (ipNum >= (127 << 24) && ipNum <= (127 << 24 | 0xFFFFFF))               // 127.0.0.0 - 127.255.255.255 (loopback)
+    );
 }
