@@ -13,6 +13,12 @@ const app = express()
 const exec = require('child_process').exec;
 const path = require('path')
 const configFilePath = path.join(__dirname, './../.env');
+const integrations = require("./../integration.json")
+const pm2Integration = require('./integrations/pm2')
+const dockerIntegration = require('./integrations/docker')
+
+
+
 module.exports = class Application {
     constructor() {
         this.startApp()
@@ -111,7 +117,7 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 10000);
+        setInterval(this.collectMetrics, 60000);
         // this.collectMetrics()
     }
 
@@ -176,7 +182,7 @@ module.exports = class Application {
                     watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), ip: getSystemIP(), uuid: uuid, distro: distro, release: release })
                     return true
                 } else {
-                    if(response.data.message){
+                    if (response.data.message) {
                         console.log(response.data.message)
                     }
                     return false
@@ -193,122 +199,49 @@ module.exports = class Application {
 
     // to collect and log metrics
     async collectMetrics() {
+
         try {
-            exec('docker --version', (error, stdout) => {
-                if (error) {
-                    console.log('Docker is not installed.');
-                } else {
 
-                }
-            });
+            for(let index in integrations){
 
-
-            si.dockerImages().then(images => {
-                let imagesMetrics = []
-                images.forEach(image => {
-
-                    if (image.repoTags.length > 0) {
-                        const lastColonIndex = image.repoTags[0].lastIndexOf(':');
-
-
-
-                        const name = image.repoTags[0].slice(0, lastColonIndex); // Get part before the last ':'
-                        const tag = image.repoTags[0].slice(lastColonIndex + 1); // Get part after the last ':'
-                        imagesMetrics.push({
-                            id: image.id,
-                            name: name,
-                            tag: tag,
-                            volumes: image.config.Volumes ? image.config.Volumes : [],
-                            size: image.size,
-                            created: image.created
-                        })
-                    } else {
-                        imagesMetrics.push({
-                            id: image.id,
-                            name: "null",
-                            tag: "null",
-                            volumes: image.config.Volumes ? image.config.Volumes.toString() : [],
-                            size: image.size,
-                            created: image.created
-                        })
-                    }
-
-
-
-
-
-
-                })
-                si.dockerInfo().then(info => {
-                    if (info) {
-                        si.dockerVolumes().then(volumes => {
-                            let volumeMetrics = []
-                            volumes.forEach(volume => {
-                                volumeMetrics.push({
-                                    id: volume.name,
-                                    name: volume.name,
-                                    labels: volume.labels ? volume.labels.toString() : "",
-                                    mountpoint: volume.mountpoint,
-                                    scope: volume.scope,
-                                    created: volume.created
-                                })
-                            })
-                            si.dockerAll().then(containers => {
-                                let containerMetrics = []
-                                containers.forEach(container => {
-                                    try {
-                                        containerMetrics.push({
-                                            id: container.id,
-                                            name: container.name,
-                                            image: container.image,
-                                            created: container.created,
-                                            started: container.started,
-                                            state: container.state,
-                                            restartCount: container.restartCount,
-                                            ports: container.ports.length > 0 ? container.ports : [],
-                                            mounts: container.mounts.length > 0 ? container.mounts : [],
-                                            memUsage: container.memUsage,
-                                            memLimit: container.memLimit,
-                                            memPercent: container.memPercent,
-                                            cpuPercent: container.cpuPercent,
-                                            netIO_rx: container.netIO.rx,
-                                            netIO_wx: container.netIO.wx,
-                                            blockIO_r: container.blockIO.r,
-                                            blockIO_w: container.blockIO.w
-                                        })
-                                    } catch (error) {
-
-                                    }
-                                })
-                                if(info.id){
-                                    watchlogServerSocket.emit("dockerInfo", {
-                                        data: {
-                                            id: info.id,
-                                            name: "dockerInfo",
-                                            containersCount: info.containers,
-                                            containersRunning: info.containersRunning,
-                                            containersPaused: info.containersPaused,
-                                            containersStopped: info.containersStopped,
-                                            imagesCount: info.images,
-                                            memTotal: info.memTotal,
-                                            serverVersion: info.serverVersion,
-                                            volumesCount: volumes.length,
-                                            volumes: volumeMetrics,
-                                            images: imagesMetrics,
-                                            containers: containerMetrics
-                                        }
-                                    })
+                if(integrations[index].service == 'pm2'){
+                    pm2Integration.getData((result, err) => {
+                        if(result){
+                            watchlogServerSocket.emit("integrations/pm2service", {
+                                data: {
+                                    apps : result
                                 }
-                               
+                            })
+                        }
+                    })
+                    break
+                }
+            }
+        } catch (error) {
+        }
+
+        try {
+            for(let integrate in integrations){
+                if(integrations[integrate].service == 'docker' && integrations[integrate].monitor == true){
+                    dockerIntegration.getData((result, err) => {
+                        if(result){
+                            watchlogServerSocket.emit("dockerInfo", {
+                                data: result
+                            })
+                        }
+                    })
+                    break
+                }
+            }
+        } catch (error) {
+            
+        }
 
 
+        try {
+         
 
-                            }).catch(err => null)
 
-                        }).catch(err => null)
-                    }
-                }).catch(err => null)
-            }).catch(err => console.log(err))
 
             si.fsSize().then(disks => {
                 let used = 0
@@ -464,7 +397,7 @@ watchlogServerSocket.on('reconnect', async (attemptNumber) => {
     if (apiKey) {
         const systemOsfo = await si.osInfo();
         const systemInfo = await si.system();
-            
+
         let uuid = ""
         if (!process.env.UUID) {
             if (systemOsfo.serial && systemOsfo.serial.length > 0) {
@@ -480,7 +413,7 @@ watchlogServerSocket.on('reconnect', async (attemptNumber) => {
         } else {
             uuid = process.env.UUID
         }
-        
+
         watchlogServerSocket.emit("setApiKey", { apiKey, host: os.hostname(), ip: getSystemIP(), uuid: uuid, distro: systemOsfo.distro, release: systemOsfo.release })
     }
 

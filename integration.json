@@ -1,0 +1,16 @@
+[
+    {
+        "service" : "pm2",
+        "apps" : true,
+        "monitor" : true
+    },
+    {
+        "service" : "docker",
+        "monitor" : true
+    },
+    {
+        "service" : "mongodb",
+        "monitor" : true,
+        "log" : "/var/log/mongod.log"
+    }
+]
