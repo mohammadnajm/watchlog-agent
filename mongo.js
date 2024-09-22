@@ -21,12 +21,12 @@ function sendMongoMetrics() {
             // Send to Watchlog
             console.log('gauge', { metric: 'mongodb.connections', count: connections });
             console.log('systembyte', { metric: 'mongodb.memory.usage', count: memory });  //MB
-            // console.log('increment', { metric: 'mongodb.operations.insert', count: opsInsert });
+            console.log('increment', { metric: 'mongodb.operations.insert', count: opsInsert });
             console.log('increment', { metric: 'mongodb.operations.query', count: opsQuery.high * Math.pow(2, 32) + opsQuery.low });
-            // const fullValue = opsQuery.high * Math.pow(2, 32) + opsQuery.low;
-            // console.log('systembyte', { metric: 'mongodb.network.bytesIn', count: networkIn });
-            // console.log('systembyte', { metric: 'mongodb.network.bytesOut', count: networkOut });
-            // console.log('gauge', { metric: 'mongodb.latency.commands', count: latency });
+            const fullValue = opsQuery.high * Math.pow(2, 32) + opsQuery.low;
+            console.log('systembyte', { metric: 'mongodb.network.bytesIn', count: networkIn });
+            console.log('systembyte', { metric: 'mongodb.network.bytesOut', count: networkOut });
+            console.log('gauge', { metric: 'mongodb.latency.commands', count: latency });
 
         } catch (error) {
             console.error("Error parsing MongoDB output:", error.message);
@@ -34,4 +34,6 @@ function sendMongoMetrics() {
     });
 }
 
-setInterval(sendMongoMetrics, 2000);  // Collect metrics every 60 seconds
+sendMongoMetrics()
+
+// setInterval(sendMongoMetrics, 2000);  // Collect metrics every 60 seconds
