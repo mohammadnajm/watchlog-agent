@@ -18,10 +18,12 @@ exports.getData = function (callback) {
                     cpu: process.monit.cpu,         // CPU usage percentage
                     uptime: process.pm2_env.pm_uptime,
                     restarts: process.pm2_env.restart_time,
-                    max_memory_restart : process.pm2_env.max_memory_restart ? process.pm2_env.max_memory_restart : null,
-                    version : process.pm2_env.version,
-                    user : process.pm2_env.USER,
-                    pid : process.pid
+                    max_memory_restart: process.pm2_env.max_memory_restart ? process.pm2_env.max_memory_restart : null,
+                    version: process.pm2_env.version,
+                    user: process.pm2_env.USER,
+                    pid: process.pid,
+                    reqPerMin: process.pm2_env.axm_monitor.HTTP ? process.pm2_env.axm_monitor.HTTP.value : 0
+
                 }));
 
                 callback(pm2Metrics)
