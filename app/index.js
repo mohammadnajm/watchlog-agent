@@ -16,6 +16,7 @@ const configFilePath = path.join(__dirname, './../.env');
 const integrations = require("./../integration.json")
 const pm2Integration = require('./integrations/pm2')
 const dockerIntegration = require('./integrations/docker')
+const mongoIntegration = require('./integrations/mongo')
 
 
 
@@ -117,7 +118,7 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 60000);
+        setInterval(this.collectMetrics, 5000);
         // this.collectMetrics()
     }
 
@@ -200,16 +201,37 @@ module.exports = class Application {
     // to collect and log metrics
     async collectMetrics() {
 
+
+        try {
+            for (let integrate in integrations) {
+                if (integrations[integrate].service == 'mongodb' && integrations[integrate].monitor == true) {
+                    let username = integrations[integrate].username || ""
+                    let password = integrations[integrate].password || ""
+                    mongoIntegration.getData(username, password, (result, err) => {
+                        if (result) {
+                            watchlogServerSocket.emit("integrations/mongodbservice", {
+                                data: result
+                            })
+                        }
+                    })
+                    break
+                }
+            }
+        } catch (error) {
+
+        }
+
+
         try {
 
-            for(let index in integrations){
+            for (let index in integrations) {
 
-                if(integrations[index].service == 'pm2'){
+                if (integrations[index].service == 'pm2') {
                     pm2Integration.getData((result, err) => {
-                        if(result){
+                        if (result) {
                             watchlogServerSocket.emit("integrations/pm2service", {
                                 data: {
-                                    apps : result
+                                    apps: result
                                 }
                             })
                         }
@@ -221,10 +243,10 @@ module.exports = class Application {
         }
 
         try {
-            for(let integrate in integrations){
-                if(integrations[integrate].service == 'docker' && integrations[integrate].monitor == true){
+            for (let integrate in integrations) {
+                if (integrations[integrate].service == 'docker' && integrations[integrate].monitor == true) {
                     dockerIntegration.getData((result, err) => {
-                        if(result){
+                        if (result) {
                             watchlogServerSocket.emit("dockerInfo", {
                                 data: result
                             })
@@ -234,12 +256,13 @@ module.exports = class Application {
                 }
             }
         } catch (error) {
-            
+
         }
 
 
+
         try {
-         
+
 
 
 
@@ -269,6 +292,7 @@ module.exports = class Application {
                 disksMetrics.push({
                     metric: `system.disk.usagePercent`, count: Math.round((used / total) * 100), tag: "disk"
                 })
+
 
 
 
