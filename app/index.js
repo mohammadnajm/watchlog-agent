@@ -118,7 +118,7 @@ module.exports = class Application {
             });
 
         });
-        setInterval(this.collectMetrics, 5000);
+        setInterval(this.collectMetrics, 60000);
         // this.collectMetrics()
     }
 
