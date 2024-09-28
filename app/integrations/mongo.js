@@ -75,8 +75,8 @@ exports.getData = function (username, password, callback) {
             execMongoCommand(command, (stdout) => {
                 try {
                     const serverStatus = JSON.parse(stdout); // Parse JSON output safely
-                    const connections = serverStatus.connections?.current || 0;
-                    const opsQuery = serverStatus.opcounters?.query || 0;
+                    const connections = serverStatus.connections.current || 0;
+                    const opsQuery = serverStatus.opcounters.query || 0;
                     const availableConnections = serverStatus.connections.available;
                     const memoryResident = serverStatus.mem.resident;
                     const memoryVirtual = serverStatus.mem.virtual;
