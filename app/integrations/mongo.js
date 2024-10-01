@@ -18,20 +18,20 @@ const getLongValue = (obj) => {
 };
 
 
-exports.getData = function (username, password, callback) {
-    exec('mongosh --version', (error, stdout, stderr) => {
+exports.getData = function (host, port, username, password, callback) {
+    exec(`mongosh --version`, (error, stdout, stderr) => {
         if (error) {
 
-            exec('mongo --version', (error2, stdout2, stderr2) => {
+            exec(`mongo --host ${host} --port ${port} --version`, (error2, stdout2, stderr2) => {
                 if (error2) {
                     console.log(null)
                 } else {
                     let command = ""
                     if (username && username.length > 0) {
-                        command = `mongo --username ${username} --password ${password} --authenticationDatabase admin --quiet --eval "JSON.stringify(db.serverStatus())"`
+                        command = `mongo --host ${host} --port ${port} --username ${username} --password ${password} --authenticationDatabase admin --quiet --eval "JSON.stringify(db.serverStatus())"`
 
                     } else {
-                        command = `mongo  --authenticationDatabase admin --quiet --eval "JSON.stringify(db.serverStatus())"`
+                        command = `mongo  --host ${host} --port ${port} --authenticationDatabase admin --quiet --eval "JSON.stringify(db.serverStatus())"`
 
                     }
                     let version = stdout2.match(/"version":\s*"([\d.]+)"/) ? stdout2.match(/"version":\s*"([\d.]+)"/)[1] : "";
@@ -70,7 +70,7 @@ exports.getData = function (username, password, callback) {
             });
         } else {
             let version = stdout.trim()
-            const command = `mongosh --username ${username} --password ${password} --authenticationDatabase admin --quiet --eval "JSON.stringify(db.serverStatus())"`
+            const command = `mongosh --host ${host} --port ${port} --username ${username} --password ${password} --authenticationDatabase admin --quiet --eval "JSON.stringify(db.serverStatus())"`
 
             execMongoCommand(command, (stdout) => {
                 try {
