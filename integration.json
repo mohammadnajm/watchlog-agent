@@ -20,5 +20,11 @@
         "host": "127.0.0.1",
         "port": "6379",
         "password": ""
+    },
+    {
+        "monitor": true,
+        "service" : "nginx",
+        "accessLog" : "/var/log/nginx/access.log",
+        "nginx_status_url" : "http://localhost:8080/nginx_status"
     }
 ]
