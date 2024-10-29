@@ -22,9 +22,9 @@
         "password": ""
     },
     {
-        "monitor": true,
+        "monitor": false,
         "service" : "nginx",
-        "accessLog" : "/var/log/nginx/access.log",
+        "accessLog" : "access.log",
         "nginx_status_url" : "http://localhost:8080/nginx_status"
     }
 ]

@@ -54,6 +54,8 @@ for (let integrate in integrations) {
                                 request: match[4],
                                 status: parseInt(match[6], 10),
                                 responseTime: parseFloat(match[10]),
+                                requestSize: parseInt(match[7], 10) // Capture request size
+
                             };
 
                             const requestParts = parsedLog.request.split(' ');
@@ -66,9 +68,15 @@ for (let integrate in integrations) {
                                 return;
                             }
 
-                            const origin = parsedUrl.protocol + "//" + parsedUrl.host;
-                            const cleanApiPath = parsedUrl.pathname;
+                            let origin = parsedUrl.protocol + "//" + parsedUrl.host;
+                            let cleanApiPath = parsedUrl.pathname;
+                            if(origin && origin !== "/"){
+                                origin = origin.replace(/\/+$/, '')
+                            }
 
+                            if(cleanApiPath && cleanApiPath !== "/"){
+                                cleanApiPath = cleanApiPath.replace(/\/+$/, '')
+                            }
                             if (!isValidOriginAndApi(origin, cleanApiPath, method, parsedLog.status, parsedLog.responseTime)) {
                                 return;
                             }
@@ -106,6 +114,7 @@ for (let integrate in integrations) {
                                 apiMethodStatusCounts[origin][cleanApiPath][method][parsedLog.status][country] = {
                                     count: 0,
                                     totalResponseTime: 0,
+                                    totalRequestSize: 0, // Initialize request size accumulation
                                 };
                             }
 
@@ -113,6 +122,7 @@ for (let integrate in integrations) {
                             const statusEntry = apiMethodStatusCounts[origin][cleanApiPath][method][parsedLog.status][country];
                             statusEntry.count += 1;
                             statusEntry.totalResponseTime += parsedLog.responseTime;
+                            statusEntry.totalRequestSize += parsedLog.requestSize;
 
                         } else {
                             // console.log("dosen't match")
@@ -262,6 +272,7 @@ function processAndSendAggregatedData() {
                         for (const country in apiMethodStatusCountsCheck[origin][api][method][status]) {
                             const statusEntry = apiMethodStatusCountsCheck[origin][api][method][status][country];
                             const avgResponseTime = (statusEntry.totalResponseTime / statusEntry.count).toFixed(3);
+                            const totalRequestSize = statusEntry.totalRequestSize ; // Calculate average request size
 
                             // Add country to the result
                             if (origin && api && method && parseInt(status, 10) && statusEntry && avgResponseTime && country) {
@@ -272,6 +283,7 @@ function processAndSendAggregatedData() {
                                     status: parseInt(status, 10),
                                     count: statusEntry.count,
                                     avgResponseTime: parseFloat(avgResponseTime),
+                                    totalRequestSize: parseFloat(totalRequestSize), // Optional: Include average request size
                                     country: country, // Include the country in the result
                                 });
                             }
@@ -281,7 +293,6 @@ function processAndSendAggregatedData() {
                 }
             }
         }
-        console.log(result)
         if (result.length > 0) {
             watchlogServerSocket.emit("integrations/nginx.access.log", {
                 data: result
