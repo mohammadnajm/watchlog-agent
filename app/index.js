@@ -19,7 +19,7 @@ const dockerIntegration = require('./integrations/docker')
 const mongoIntegration = require('./integrations/mongo')
 const redisIntegration = require('./integrations/redis')
 const nginxIntegration = require('./integrations/nginx')
-
+let customMetrics = []
 
 
 module.exports = class Application {
@@ -74,48 +74,81 @@ module.exports = class Application {
             ws.on('message', function message(data) {
                 try {
                     let body = JSON.parse(data)
-                    switch (body.method) {
-                        case 'increment':
-                            if (body.metric && body.count) {
-                                watchlogServerSocket.emit('increment', { ...body, apiKey, type: 1 })
-                            }
-                            break;
-                        case 'decrement':
-                            if (body.metric && body.count) {
-                                watchlogServerSocket.emit('decrement', { ...body, apiKey, type: 1 })
-                            }
-                            break;
-                        case 'distribution':
-                            if (body.metric && body.count) {
-                                watchlogServerSocket.emit('distribution', { ...body, apiKey, type: 1 })
-                            }
-                            break;
-                        case 'gauge':
-                            if (body.metric && body.count) {
-                                watchlogServerSocket.emit('gauge', { ...body, apiKey, type: 1 })
-                            }
-                            break;
-                        case 'percentage':
-                            if (body.metric && body.count) {
-                                watchlogServerSocket.emit('percentage', { ...body, apiKey, type: 1 })
-                            }
-                            break;
-                        case 'systembyte':
-                            if (body.metric && body.count) {
-                                watchlogServerSocket.emit('systembyte', { ...body, apiKey, type: 1 })
-                            }
-                            break;
-                        case 'log':
-                            if (body.service && body.message) {
-                                watchlogServerSocket.emit('log', { ...body, type: 1 })
-                            }
-                            break;
-                        default:
-                            null
-                        // code block
+                    if (customMetrics.length < 100000) {
+
+                        switch (body.method) {
+                            case 'increment':
+                                if (body.metric && body.count) {
+                                    customMetrics.push({
+                                        metric: body.metric,
+                                        count: body.count,
+                                        metricType: 'increment'
+                                    })
+                                    // watchlogServerSocket.emit('increment', { ...body, apiKey, type: 1 })
+                                }
+                                break;
+                            case 'decrement':
+                                if (body.metric && body.count) {
+                                    customMetrics.push({
+                                        metric: body.metric,
+                                        count: body.count > 0 ? body.count * -1 : body.count,
+                                        metricType: 'decrement'
+                                    })
+                                    // watchlogServerSocket.emit('decrement', { ...body, apiKey, type: 1 })
+                                }
+                                break;
+                            case 'distribution':
+                                if (body.metric && body.count) {
+                                    customMetrics.push({
+                                        metric: body.metric,
+                                        count: body.count,
+                                        metricType: 'distribution'
+                                    })
+                                    // watchlogServerSocket.emit('distribution', { ...body, apiKey, type: 1 })
+                                }
+                                break;
+                            case 'gauge':
+                                if (body.metric && body.count) {
+                                    customMetrics.push({
+                                        metric: body.metric,
+                                        count: body.count,
+                                        metricType: 'gauge'
+                                    })
+                                    // watchlogServerSocket.emit('gauge', { ...body, apiKey, type: 1 })
+                                }
+                                break;
+                            case 'percentage':
+                                if (body.metric && body.count) {
+                                    customMetrics.push({
+                                        metric: body.metric,
+                                        count: body.count,
+                                        metricType: 'percentage'
+                                    })
+                                    // watchlogServerSocket.emit('percentage', { ...body, apiKey, type: 1 })
+                                }
+                                break;
+                            case 'systembyte':
+                                if (body.metric && body.count) {
+                                    customMetrics.push({
+                                        metric: body.metric,
+                                        counts: body.count,
+                                        metricType: 'systembyte'
+                                    })
+                                    // watchlogServerSocket.emit('systembyte', { ...body, apiKey, type: 1 })
+                                }
+                                break;
+                            case 'log':
+                                if (body.service && body.message) {
+                                    watchlogServerSocket.emit('log', { ...body, type: 1 })
+                                }
+                                break;
+                            default:
+                                null
+                            // code block
+                        }
                     }
+
                 } catch (error) {
-                    console.log(error.message)
                 }
             });
 
@@ -455,7 +488,7 @@ watchlogServerSocket.on('reconnect', async (attemptNumber) => {
             } else {
                 uuid = systemOsfo.hostname
             }
-            fs.appendFileSync(configFilePath, `\nUUID=${uuid}`, 'utf8');
+            // fs.appendFileSync(configFilePath, `\nUUID=${uuid}`, 'utf8');
 
 
         } else {
@@ -501,3 +534,95 @@ function isPrivateIP(ip) {
         (ipNum >= (127 << 24) && ipNum <= (127 << 24 | 0xFFFFFF))               // 127.0.0.0 - 127.255.255.255 (loopback)
     );
 }
+
+
+
+setInterval(() => {
+
+    try {
+        let oldMetrics = customMetrics
+        customMetrics = []
+        let sendMetrics = []
+        for (let i = 0; i < oldMetrics.length; i++) {
+            try {
+                let isIn = false
+                for (let j = 0; j < sendMetrics.length; j++) {
+                    if (sendMetrics[j].metric === oldMetrics[i].metric) {
+                        isIn = true
+                        switch (oldMetrics[i].metricType) {
+                            case 'increment':
+                                sendMetrics[j].values.push(oldMetrics[i].count)
+                                break;
+                            case 'decrement':
+                                if (oldMetrics[i].count > 0)
+                                    sendMetrics[j].values.push(oldMetrics[i].count)
+                                else
+                                    sendMetrics[j].values.push(oldMetrics[i].count)
+                                break;
+                            case 'distribution':
+                                sendMetrics[j].values.push(oldMetrics[i].count)
+                                break;
+                            case 'gauge':
+                                sendMetrics[j].values.push(oldMetrics[i].count)
+                                break;
+                            case 'percentage':
+                                sendMetrics[j].values.push(oldMetrics[i].count)
+                                break;
+                            case 'systembyte':
+                                sendMetrics[j].values.push(oldMetrics[i].count)
+                                break;
+                        }
+                    }
+                }
+                if (!isIn) {
+                    sendMetrics.push({
+                        metric: oldMetrics[i].metric,
+                        metricType: oldMetrics[i].metricType,
+                        sum: null,
+                        min: null,
+                        max: null,
+                        avg: null,
+                        last: null,
+                        values: [oldMetrics[i].count],
+                        count: 1,
+                        metric_type: 1
+                    })
+                }
+            } catch (error) {
+            }
+
+
+        }
+        sendMetrics.forEach(item => {
+            item.min = Math.min(...item.values)
+            item.max = Math.max(...item.values)
+            item.sum = item.values.reduce((a, b) => Number(a) + Number(b))
+            item.count = item.values.length
+            item.avg = item.sum / item.count
+            item.last = item.values[item.values.length - 1]
+            item.values = []
+            if (item.metricType === 'increment' || item.metricType === 'decrement') {
+                item.metric_type = 1
+            } else if (item.metricType === 'distribution') {
+                item.metric_type = 2
+            } else if (item.metricType === 'gauge') {
+                item.metric_type = 3
+            } else if (item.metricType === 'percentage') {
+                item.metric_type = 4
+            } else if (item.metricType === 'systembyte') {
+                item.metric_type = 5
+            }
+        })
+
+        if (sendMetrics.length > 0) {
+            watchlogServerSocket.emit('customMetrics', sendMetrics)
+        }
+
+
+
+    } catch (error) {
+    }
+
+
+
+}, 10000)
