@@ -14,7 +14,6 @@ const exec = require('child_process').exec;
 const path = require('path')
 const configFilePath = path.join(__dirname, './../.env');
 const integrations = require("./../integration.json")
-const pm2Integration = require('./integrations/pm2')
 const dockerIntegration = require('./integrations/docker')
 const mongoIntegration = require('./integrations/mongo')
 const redisIntegration = require('./integrations/redis')
@@ -66,6 +65,13 @@ module.exports = class Application {
 
     runAgent(uuid) {
         app.listen(port, () => console.log(`Watchlog api agent is running on port 3774`))
+        app.use(express.json());
+        app.use(express.urlencoded({
+            extended: true
+        }));
+
+
+
         this.getRouter(uuid)
         const wss = new WebSocketServer({ port: 3775, host: "127.0.0.1" }, () => console.log("Watchlog agent is running on port 3775"));
         wss.on('connection', function connection(ws) {
@@ -207,6 +213,17 @@ module.exports = class Application {
                 console.log(error.message)
             }
         })
+
+        app.post("/pm2list", (req, res) => {
+
+            if(req.body.username && req.body.apps){
+                if(watchlogServerSocket.connected){
+                    watchlogServerSocket.emit("integrations/pm2List", {
+                        data : req.body
+                    })
+                }
+            }
+        })
     }
 
     async checkApiKey(uuid, distro, release) {
@@ -268,28 +285,6 @@ module.exports = class Application {
                         if (result) {
                             watchlogServerSocket.emit("integrations/redisservice", {
                                 data: result
-                            })
-                        }
-                    })
-                    break
-                }
-            }
-        } catch (error) {
-        }
-
-
-
-        try {
-
-            for (let index in integrations) {
-
-                if (integrations[index].service == 'pm2') {
-                    pm2Integration.getData((result, err) => {
-                        if (result) {
-                            watchlogServerSocket.emit("integrations/pm2service", {
-                                data: {
-                                    apps: result
-                                }
                             })
                         }
                     })
