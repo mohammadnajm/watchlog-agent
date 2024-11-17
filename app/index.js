@@ -119,7 +119,7 @@ module.exports = class Application {
                                     body.count = body.count > 0 ? body.count * -1 : body.count
 
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -151,7 +151,7 @@ module.exports = class Application {
                             case 'distribution':
                                 if (body.metric && body.count) {
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -182,7 +182,7 @@ module.exports = class Application {
                             case 'gauge':
                                 if (body.metric && body.count) {
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -214,7 +214,7 @@ module.exports = class Application {
                                 if (body.metric && body.count && body.count >= 0 && body.count <= 100) {
 
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -245,7 +245,7 @@ module.exports = class Application {
                             case 'systembyte':
                                 if (body.metric && body.count) {
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -304,7 +304,7 @@ module.exports = class Application {
                     body.count = body.value
 
                     res.end()
-                    
+
                     if (customMetrics.length < 1000) {
 
                         switch (body.method) {
@@ -345,7 +345,7 @@ module.exports = class Application {
                                     body.count = body.count > 0 ? body.count * -1 : body.count
 
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -377,7 +377,7 @@ module.exports = class Application {
                             case 'distribution':
                                 if (body.metric && body.count) {
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -408,7 +408,7 @@ module.exports = class Application {
                             case 'gauge':
                                 if (body.metric && body.count) {
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -440,7 +440,7 @@ module.exports = class Application {
                                 if (body.metric && body.count && body.count >= 0 && body.count <= 100) {
 
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
@@ -471,7 +471,7 @@ module.exports = class Application {
                             case 'systembyte':
                                 if (body.metric && body.count) {
                                     let isIn = false
-                                    for (item in customMetrics) {
+                                    for (let item in customMetrics) {
                                         if (customMetrics[item].metric === body.metric) {
                                             isIn = true
                                             customMetrics[item].count++
