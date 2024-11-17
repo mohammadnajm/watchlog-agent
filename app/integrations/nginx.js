@@ -242,7 +242,7 @@ function fetchNginxStatus(callback) {
 function checkNginxStatusData() {
     checkNginxStatus((isInstalled, uptime, status, version) => {
         // console.log(isInstalled, uptime, status, version)
-        if (isInstalled = true) {
+        if (isInstalled) {
             fetchNginxStatus((statusNginx) => {
                 watchlogServerSocket.emit("integrations/nginx.status", {
                     data: {
