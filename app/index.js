@@ -1,7 +1,6 @@
 const si = require('systeminformation');
 const os = require('os')
 const fs = require('fs')
-const { WebSocketServer } = require('ws');
 const axios = require('axios');
 const port = 3774
 const watchlog_server = process.env.WATCHLOG_SERVER
@@ -70,17 +69,25 @@ module.exports = class Application {
             extended: true
         }));
 
-
-
         this.getRouter(uuid)
-        const wss = new WebSocketServer({ port: 3775, host: "127.0.0.1" }, () => console.log("Watchlog agent is running on port 3775"));
-        wss.on('connection', function connection(ws) {
-            ws.on('error', console.error);
+    
+        setInterval(this.collectMetrics, 60000);
+    }
 
-            ws.on('message', function message(data) {
-                try {
-                    let body = JSON.parse(data)
-                    if (customMetrics.length < 1000) {                        
+    getRouter(uuid) {
+        app.get("/", async (req, res) => {
+            try {
+                if (watchlogServerSocket.connected) {
+                    let body = req.query
+                    if(!body.count && body.value){
+                        body.count = body.value
+                    }
+
+                    body.count = Number(body.count)
+                    res.end()
+
+                    if (customMetrics.length < 1000) {
+
                         switch (body.method) {
                             case 'increment':
                                 if (body.metric && body.count) {
@@ -283,25 +290,20 @@ module.exports = class Application {
                                 null
                             // code block
                         }
-                    
+
                     }
-
-                } catch (error) {
-                    console.log(error)
                 }
-            });
-
-        });
-        setInterval(this.collectMetrics, 60000);
-        // this.collectMetrics()
-    }
-
-    getRouter(uuid) {
-        app.get("/", async (req, res) => {
+            } catch (error) {
+                console.log(error.message)
+            }
+        })
+        app.get("/node", async (req, res) => {
             try {
+                
                 if (watchlogServerSocket.connected) {
                     let body = req.query
-                    body.count = body.value
+                    body.count = Number(body.count)
+                    console.log(body)
 
                     res.end()
 
@@ -516,7 +518,6 @@ module.exports = class Application {
                 console.log(error.message)
             }
         })
-
         app.post("/pm2list", (req, res) => {
 
             if (req.body.username && req.body.apps) {
