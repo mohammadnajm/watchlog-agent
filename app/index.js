@@ -519,7 +519,7 @@ module.exports = class Application {
             }
         })
         app.post("/pm2list", (req, res) => {
-
+            res.end()
             if (req.body.username && req.body.apps) {
                 if (watchlogServerSocket.connected) {
                     watchlogServerSocket.emit("integrations/pm2List", {
