@@ -76,6 +76,8 @@ module.exports = class Application {
 
     getRouter(uuid) {
         app.get("/", async (req, res) => {
+            res.end()
+
             try {
                 if (watchlogServerSocket.connected) {
                     let body = req.query
@@ -84,7 +86,6 @@ module.exports = class Application {
                     }
 
                     body.count = Number(body.count)
-                    res.end()
 
                     if (customMetrics.length < 1000) {
 
@@ -294,10 +295,15 @@ module.exports = class Application {
                     }
                 }
             } catch (error) {
+                res.end()
+
                 console.log(error.message)
             }
         })
         app.get("/node", async (req, res) => {
+            res.end()
+
+
             try {
                 
                 if (watchlogServerSocket.connected) {
@@ -305,7 +311,6 @@ module.exports = class Application {
                     body.count = Number(body.count)
                     console.log(body)
 
-                    res.end()
 
                     if (customMetrics.length < 1000) {
 
@@ -515,18 +520,25 @@ module.exports = class Application {
                     }
                 }
             } catch (error) {
+
                 console.log(error.message)
             }
         })
         app.post("/pm2list", (req, res) => {
             res.end()
-            if (req.body.username && req.body.apps) {
-                if (watchlogServerSocket.connected) {
-                    watchlogServerSocket.emit("integrations/pm2List", {
-                        data: req.body
-                    })
+
+            try {
+                if (req.body.username && req.body.apps) {
+                    if (watchlogServerSocket.connected) {
+                        watchlogServerSocket.emit("integrations/pm2List", {
+                            data: req.body
+                        })
+                    }
                 }
+            } catch (error) {
+                
             }
+            
         })
     }
 
