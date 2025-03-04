@@ -1,0 +1,42 @@
+{
+    "logs": [
+      {
+        "name": "Nginx Access Logs",
+        "path": "/var/log/nginx/access.log",
+        "service": "nginx",
+        "format": "auto"
+      },
+      {
+        "name": "Nginx Error Logs",
+        "path": "/var/log/nginx/error.log",
+        "service": "nginx",
+        "format": "auto"
+      },
+      {
+        "name": "Redis Logs",
+        "path": "/var/log/redis/redis.log",
+        "service": "redis",
+        "format": "custom",
+        "pattern": "^(\\d{2} \\w{3} \\d{2}:\\d{2}:\\d{2}) (\\w+): (.*)$"
+      },
+      {
+        "name": "watchlog backend pm2 Logs",
+        "path": "/Users/mohammad/.pm2/logs/watchlog-backend-error.log",
+        "service": "redis",
+        "format": "auto"
+      },
+      {
+        "name": "watchlog backend pm2 Logs",
+        "path": "/Users/mohammad/.pm2/logs/watchlog-backend-error.log",
+        "service": "redis",
+        "format": "auto"
+      },
+      {
+        "name": "watchlog backend pm2 Logs",
+        "path": "/Users/mohammad/.pm2/logs/watchlog-backend-error.log",
+        "service": "redis",
+        "format": "auto"
+      }
+    ]
+  }
+  
