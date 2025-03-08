@@ -22,6 +22,7 @@ const autoPatterns = {
     default: /^(.*?)\s+(\w+):\s+(.*)$/,
 };
 
+const VALID_LEVELS = ["success", "info", "warning", "error", "critical"]; // لیست معتبر
 
 // تابع خواندن فایل تنظیمات
 function loadConfig() {
@@ -83,7 +84,7 @@ function parseAutoLogFormat(log, service) {
     if (match) {
         return {
             date: new Date(match[1] || Date.now()).toISOString(),
-            level: match[2] || "INFO",
+            level: match[2] || "info",
             message: match[3] || log
         };
     }
@@ -91,7 +92,7 @@ function parseAutoLogFormat(log, service) {
     // اگر فرمت تشخیص داده نشد، لاگ رو به‌صورت متنی ارسال کن
     return {
         date: new Date().toISOString(),
-        level: "INFO",
+        level: "info",
         message: log
     };
 }
@@ -101,31 +102,35 @@ function processLogLine(log, config) {
     let logData = {
         date: new Date().toISOString(),
         message: log,
-        level: "INFO",
+        level: "info",
         service: config.service,
         name: config.name
     };
-
-    // اگر `format: "custom"` باشه، از پترن استفاده کن
+    
+    // custom format and use pattern
     if (config.format === "custom" && config.pattern) {
         const regex = new RegExp(config.pattern);
         const match = log.match(regex);
 
         if (match) {
             logData.date = new Date(match[1] || Date.now()).toISOString();
-            logData.level = match[2] || "INFO";
+            logData.level = match[2] || "info";
             logData.message = match[3] || log;
         }
     }
-
-    // اگر `format: "auto"` باشه، سعی کن فرمت رو تشخیص بدی
+    // format auto
     else if (config.format === "auto") {
         logData = { ...logData, ...parseAutoLogFormat(log, config.service) };
     }
 
-    // console.log(`📤 Sending log: ${JSON.stringify(logData)}`);
+    // بررسی کنیم که مقدار `level` معتبر باشه
+    if (!VALID_LEVELS.includes(logData.level.toLowerCase())) {
+        logData.level = "info";
+    }
 
-    // ارسال لاگ از طریق WebSocket
+
+
+    // Send log with WebSocket
     watchlogServerSocket.emit("logs/watchlist", logData);
 }
 
@@ -153,10 +158,10 @@ function startMonitoring() {
     });
 
 
-    setTimeout(()=>{
+    setTimeout(() => {
         if (monitorLogs.length > 0 && process.env.WATCHLOG_APIKEY && process.env.UUID) {
             watchlogServerSocket.emit("watchlist/listfile", { monitorLogs, apiKey: process.env.WATCHLOG_APIKEY, uuid: process.env.UUID })
-        }else{
+        } else {
             console.log(process.env.UUID)
         }
     }, 10000)
